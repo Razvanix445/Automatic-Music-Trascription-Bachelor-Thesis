@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/vexflow@4.1.0/build/cjs/vexflow.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <title>VexFlow Music Sheet</title>
+    <style>
+        /* Scrollable container with fixed height */
+        #scroll-container {
+            width: 1000px; /* Fixed width */
+            height: 600px; /* Fixed height */
+            border: 1px solid #ccc; /* Add a border for clarity */
+            overflow-y: auto; /* Vertical scrolling */
+            margin: 10px auto;
+        }
+
+        /* Music sheet div must respect its parent */
+        #music-sheet {
+            min-height: 100%; /* Allow content to expand */
+        }
+
+        /* Button style */
+        button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+<div id="scroll-container">
+    <div id="music-sheet"></div>
+</div>
+<button onclick="playNotes()">Play</button>
+
+<script>
+    let noteList = []; // List of note strings (d/4, c/5, etc.)
+    let staveNotes = []; // List of VexFlow StaveNote objects for dynamic styling
+    let voices = []; // VexFlow voices for formatting
+    let currentHighlight = null; // Track the currently highlighted note
+
+    function formatNote(note) {
+        // Converts notes like 'd/3' to 'D3' for Tone.js
+        const parts = note.split("/");
+        if (parts.length !== 2) return null;
+        const pitch = parts[0].charAt(0).toUpperCase() + parts[0].slice(1); // 'd' -> 'D'
+        const octave = parts[1];
+        return `${pitch}${octave}`;
+    }
+
+    function renderNotes(notes) {
+        if (typeof Vex === 'undefined') {
+            console.error("VexFlow not loaded!");
+            return;
+        }
+
+        const VF = Vex.Flow;
+        const div = document.getElementById("music-sheet");
+        div.innerHTML = ""; // Clear previous content
+
+        const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+        const width = 1000;
+        const height = notes.length / 4 * 120 + 200; // Adjust dynamic height
+        renderer.resize(width, height);
+        const context = renderer.getContext();
+
+        const measureWidth = 180;
+        const rowHeight = 120;
+        const measuresPerRow = 4;
+
+        let x = 10;
+        let y = 40;
+
+        noteList = [];
+        staveNotes = [];
+        voices = [];
+
+        const chunkedNotes = [];
+        for (let i = 0; i < notes.length; i += 4) {
+            chunkedNotes.push(notes.slice(i, i + 4));
+        }
+
+        chunkedNotes.forEach((measure, index) => {
+            if (index > 0 && index % measuresPerRow === 0) {
+                x = 10;
+                y += rowHeight;
+            }
+
+            const stave = new VF.Stave(x, y, measureWidth);
+            if (index === 0) stave.addClef("treble");
+            stave.setContext(context).draw();
+
+            // Prepare notes and add rests if needed
+            const measureNotes = measure.map(note => {
+                return new VF.StaveNote({
+                    keys: [note],
+                    duration: "q",
+                });
+            });
+
+            // Add rest notes to fill missing beats
+            while (measureNotes.length < 4) {
+                const restNote = new VF.StaveNote({
+                    keys: ["b/4"], // Rest is drawn on the middle line
+                    duration: "qr", // Quarter rest
+                });
+                measureNotes.push(restNote);
+            }
+
+            staveNotes.push(...measureNotes); // Store for playback
+            measureNotes.forEach(note => noteList.push(formatNote(note.keys[0])));
+
+            // Create and format the voice
+            const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+            voice.addTickables(measureNotes);
+            voices.push(voice);
+
+            new VF.Formatter().joinVoices([voice]).format([voice], measureWidth - 20);
+            voice.draw(context, stave);
+
+            x += measureWidth + 10;
+        });
+    }
+
+    async function playNotes() {
+        const synth = new Tone.Synth().toDestination();
+        let time = 0;
+
+        // Reset any previous highlight
+        if (currentHighlight) {
+            currentHighlight.setStyle({ fillStyle: "black", strokeStyle: "black" });
+        }
+
+        staveNotes.forEach((note, index) => {
+            const toneNote = noteList[index];
+            if (!toneNote) return; // Skip invalid notes
+
+            Tone.Transport.schedule((playTime) => {
+                // Trigger the note sound
+                synth.triggerAttackRelease(toneNote, "8n", playTime);
+
+                // Highlight the current note
+                if (currentHighlight) {
+                    currentHighlight.setStyle({ fillStyle: "black", strokeStyle: "black" });
+                }
+                currentHighlight = note; // Track the note being played
+                note.setStyle({ fillStyle: "red", strokeStyle: "red" }); // Highlight in red
+
+                renderUpdatedSheet();
+            }, time);
+
+            time += 0.5; // Delay between notes
+        });
+
+        Tone.Transport.start();
+    }
+
+    function renderUpdatedSheet() {
+        const VF = Vex.Flow;
+        const div = document.getElementById("music-sheet");
+        div.innerHTML = ""; // Clear previous content
+
+        const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+        renderer.resize(1000, 600);
+        const context = renderer.getContext();
+
+        const measureWidth = 180;
+        const rowHeight = 120;
+        const measuresPerRow = 4;
+
+        let x = 10;
+        let y = 40;
+
+        voices.forEach((voice, i) => {
+            if (i > 0 && i % measuresPerRow === 0) {
+                x = 10;
+                y += rowHeight;
+            }
+
+            const stave = new VF.Stave(x, y, measureWidth);
+            if (i === 0) stave.addClef("treble");
+            stave.setContext(context).draw();
+            new VF.Formatter().joinVoices([voice]).format([voice], measureWidth - 20);
+            voice.draw(context, stave);
+
+            x += measureWidth + 10;
+        });
+    }
+
+    window.onload = () => {
+        console.log("VexFlow ready!");
+    };
+</script>
+</body>
+</html>
+
+
+<!-- Scrolling doesn't work after pressing the Play button  -->
+<!-- Notes don't sound if pressed the Play button after scrolling down -->
