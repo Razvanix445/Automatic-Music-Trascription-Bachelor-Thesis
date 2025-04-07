@@ -1,0 +1,42 @@
+1. eliminated last segments of every audio recording that were shorter than the others instead of padding them to 0s
+# 2. added overlap segments, for the notes that could cross segment boundaries
+3. removed resizing on dataset creation
+4. created newer architecture with vertical dependencies layer for harmonical detection (chords)
+5. added plots for metrics visualization
+
+
+
+
+
+
+============================= Incorrect shape alignment =============================
+
+Spectrogram shape: (626, 229, 1)
+Onset labels shape: (78, 88)
+Frame labels shape: (78, 88)
+Offset labels shape: (78, 88)
+Velocity labels shape: (78, 88)
+
+Data statistics:
+Spectrogram - Min: -1.00, Max: -0.00, Mean: -0.69
+Number of onset events: 159.0
+Number of active frames: 194.0
+Number of offset events: 158.0
+Average velocity: 0.48
+
+
+
+=============================  Correct shape alignment =============================
+
+Spectrogram shape: (626, 229, 1)
+Onset labels shape: (626, 88)
+Frame labels shape: (626, 88)
+Offset labels shape: (626, 88)
+Velocity labels shape: (626, 88)
+
+Data statistics:
+Spectrogram - Min: -1.22, Max: 2.79, Mean: -0.00
+Number of onset events: 162.0
+Number of active frames: 1595.0
+Number of offset events: 162.0
+Average velocity: 0.49
