@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238139794371",
+    "project_id": "wave2notes",
+    "storage_bucket": "wave2notes.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238139794371:android:d54f87382a9a0cf4b79376",
+        "android_client_info": {
+          "package_name": "com.example.flutter_projects"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPvQp4ZASUwpBtG3yFCloS6Zl6TufLvxY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
