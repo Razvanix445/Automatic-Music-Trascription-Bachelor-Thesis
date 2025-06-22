@@ -17,14 +17,11 @@ class AudioService {
     }
 
     try {
-      // Get the temporary directory
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _recordingPath = '${tempDir.path}/recording_$timestamp.m4a';
 
-      // Configure recording settings
       if (await _audioRecorder.hasPermission()) {
-        // Start recording with updated API
         await _audioRecorder.start(
           RecordConfig(
             encoder: AudioEncoder.aacLc,

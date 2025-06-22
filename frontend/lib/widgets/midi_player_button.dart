@@ -42,7 +42,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     super.dispose();
   }
 
-  // Initialize the MIDI player
   Future<void> _initializePlayer() async {
     try {
       _midiPlayer = AudioPlayer();
@@ -80,7 +79,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Play MIDI with proper error handling
   Future<void> _playMidi() async {
     if (!_isInitialized) {
       await _initializePlayer();
@@ -115,7 +113,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Pause playback
   Future<void> _pauseMidi() async {
     try {
       await _midiPlayer.pause();
@@ -131,7 +128,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Toggle play/pause
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
       await _pauseMidi();
@@ -140,7 +136,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Reset playback
   Future<void> _resetPlayback() async {
     try {
       await _midiPlayer.stop();
@@ -157,7 +152,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Reinitialize player
   Future<void> _reinitializePlayer() async {
     await _midiPlayer.dispose();
 
@@ -188,7 +182,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
     }
   }
 
-  // Format time as mm:ss
   String _formatTime(double seconds) {
     final int mins = (seconds / 60).floor();
     final int secs = (seconds % 60).floor();
@@ -197,7 +190,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
 
   @override
   Widget build(BuildContext context) {
-    // More compact layout
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: 2,
@@ -208,11 +200,9 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            // Controls on the left
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Play/Pause button
                 IconButton(
                   icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
                   onPressed: _isInitialized ? _togglePlayback : null,
@@ -224,7 +214,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
                   ),
                 ),
 
-                // Reset button
                 IconButton(
                   icon: Icon(Icons.replay),
                   onPressed: _isInitialized ? _resetPlayback : null,
@@ -240,7 +229,6 @@ class _MidiPlayerButtonState extends State<MidiPlayerButton> {
 
             SizedBox(width: 8),
 
-            // Time display in the middle
             Expanded(
               child: RichText(
                 textAlign: TextAlign.center,

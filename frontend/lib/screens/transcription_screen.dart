@@ -81,7 +81,6 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
       _processingSeconds = 0;
     });
 
-    // Add a timer to update status periodically with more details
     final statusTimer = Stream.periodic(Duration(seconds: 1), (i) => i).listen((seconds) {
       setState(() {
         _processingSeconds = seconds;
@@ -100,7 +99,6 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
     });
 
     try {
-      // Check server status
       final serverReady = await _apiService.checkServerStatus();
       if (!serverReady) {
         statusTimer.cancel();
@@ -111,7 +109,6 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
         return;
       }
 
-      // Send the recording for transcription
       final result = await _apiService.transcribeAudio(
         _recordingPath!,
         sheetFormat: 'pdf',
@@ -128,14 +125,12 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
       });
 
       if (result != null) {
-      // Log what we got
       print('🎼 Transcription result:');
       print('  - Notes: ${result.notes.length}');
       print('  - MIDI: ${result.midiFileUrl}');
       print('  - Sheet Music: ${result.sheetMusic?.fileUrl ?? 'None'}');
       print('  - MuseScore: ${result.musescoreAvailable}');
       
-      // Navigate to results screen
       Navigator.push(
         context,
         MaterialPageRoute(

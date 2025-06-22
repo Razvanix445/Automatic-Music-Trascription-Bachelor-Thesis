@@ -4,22 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/transcription_result.dart';
 import '../config/app_theme.dart';
+import '../services/platform_service.dart';
 
-// Add a callback type for time updates
 typedef TimeUpdateCallback = void Function(double currentTime);
 
 class PianoRollVisualization extends StatefulWidget {
   final List<Note> notes;
   final double duration;
-  final String? midiFilePath;
-  // Add the callback
+  final PlatformFile? midiFile;
   final TimeUpdateCallback? onTimeUpdate;
 
   PianoRollVisualization({
     Key? key,
     required this.notes,
     required this.duration,
-    this.midiFilePath,
+    this.midiFile,
     this.onTimeUpdate,
   }) : super(key: key);
 
@@ -28,30 +27,24 @@ class PianoRollVisualization extends StatefulWidget {
 }
 
 class _PianoRollVisualizationState extends State<PianoRollVisualization> with TickerProviderStateMixin {
-  // ONLY use AudioPlayer for MIDI playback - no individual notes
   final AudioPlayer _midiPlayer = AudioPlayer();
 
-  // Animation controller for visualization
   late AnimationController _animationController;
 
-  // Playback state
   double _currentTime = 0.0;
   bool _isPlaying = false;
   bool _hasStarted = false;
   bool _midiLoaded = false;
 
-  // Active notes tracking for visualization only
   final Set<int> _activeNotes = {};
 
-  // Piano constants
-  final int _lowestNote = 21; // A0
-  final int _highestNote = 108; // C8
+  final int _lowestNote = 21;
+  final int _highestNote = 108;
 
   @override
   void initState() {
     super.initState();
 
-    // Set up animation controller for visualization
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: (widget.duration * 1000).round()),
@@ -59,8 +52,7 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
 
     _animationController.addListener(_onAnimationUpdate);
 
-    // Load MIDI file if available
-    if (widget.midiFilePath != null) {
+    if (widget.midiFile != null) {
       _loadMidiFile();
     }
   }
@@ -69,26 +61,33 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
   void didUpdateWidget(PianoRollVisualization oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // If the MIDI file path changed, reload it
-    if (widget.midiFilePath != oldWidget.midiFilePath && widget.midiFilePath != null) {
+    if (widget.midiFile != oldWidget.midiFile && widget.midiFile != null) {
       _loadMidiFile();
     }
   }
 
   Future<void> _loadMidiFile() async {
     try {
-      if (widget.midiFilePath != null) {
-        print("🎵 Loading MIDI file: ${widget.midiFilePath}");
+      if (widget.midiFile != null) {
+        print("🎵 Loading MIDI file: ${widget.midiFile!.name}");
 
-        final file = File(widget.midiFilePath!);
-        if (await file.exists()) {
+        if (widget.midiFile!.isWebDownload) {
+          // On web, MIDI files are downloaded to browser, not playable in app
+          print("⚠️ MIDI file is web download - cannot play directly in web app");
+          setState(() {
+            _midiLoaded = false;
+          });
+          return;
+        }
+
+        // On mobile, check if file exists and load it
+        final fileExists = await widget.midiFile!.exists();
+        if (fileExists) {
           try {
-            // For testing purposes, print some info about the file
-            final size = await file.length();
+            final size = widget.midiFile!.size;
             print("📊 MIDI file size: $size bytes");
 
-            // Set the source to the device file
-            await _midiPlayer.setSource(DeviceFileSource(widget.midiFilePath!));
+            await _midiPlayer.setSource(DeviceFileSource(widget.midiFile!.path));
             await _midiPlayer.setVolume(1.0);
 
             setState(() {
@@ -101,7 +100,7 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
             print("❌ Error loading MIDI file: $e");
           }
         } else {
-          print("❌ MIDI file not found: ${widget.midiFilePath}");
+          print("❌ MIDI file not found: ${widget.midiFile!.path}");
         }
       }
     } catch (e) {
@@ -110,24 +109,18 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
   }
 
   void _onAnimationUpdate() {
-    // Update current time for visualization
     _currentTime = _animationController.value * widget.duration;
 
-    // Update active notes for visualization
     _updateActiveNotes();
 
-    // Call the time update callback if provided
     widget.onTimeUpdate?.call(_currentTime);
 
-    // Update the UI
     setState(() {});
   }
 
   void _updateActiveNotes() {
-    // Clear previous active notes
     _activeNotes.clear();
 
-    // Find currently active notes based on current time
     for (final note in widget.notes) {
       if (note.time <= _currentTime && note.time + note.duration > _currentTime) {
         _activeNotes.add(note.pitch);
@@ -143,10 +136,8 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
     super.dispose();
   }
 
-  // Method to start playback (can be called from parent)
   void startPlayback() async {
     if (_hasStarted) {
-      // If already started, just resume the animation
       _animationController.forward();
     } else {
       _hasStarted = true;
@@ -158,9 +149,7 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
     });
   }
 
-  // Method to stop playback (can be called from parent)
   void stopPlayback() {
-    // Stop animation
     _animationController.stop();
 
     setState(() {
@@ -168,12 +157,9 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
     });
   }
 
-  // Method to reset playback (can be called from parent)
   void resetPlayback() {
-    // Stop playback
     _animationController.stop();
 
-    // Reset animation
     _animationController.reset();
 
     setState(() {
@@ -183,7 +169,6 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
       _activeNotes.clear();
     });
 
-    // Call the time update callback
     widget.onTimeUpdate?.call(0.0);
   }
 
@@ -193,7 +178,6 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
       color: Colors.black87,
       child: Stack(
         children: [
-          // Only draw falling notes if playback has started
           if (_hasStarted)
             CustomPaint(
               size: Size.infinite,
@@ -206,7 +190,6 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
               ),
             ),
 
-          // Piano keyboard at bottom
           Positioned(
             bottom: 0,
             left: 0,
@@ -222,9 +205,8 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
             ),
           ),
 
-          // Play indicator line
           Positioned(
-            bottom: 60, // Just above keyboard
+            bottom: 60,
             left: 0,
             right: 0,
             child: Container(
@@ -233,7 +215,6 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
             ),
           ),
 
-          // Starting instructions or status
           if (!_hasStarted)
             Center(
               child: Container(
@@ -282,7 +263,6 @@ class _PianoRollVisualizationState extends State<PianoRollVisualization> with Ti
   }
 }
 
-// Custom painter for piano keyboard
 class PianoKeyboardPainter extends CustomPainter {
   final int lowestNote;
   final int highestNote;
@@ -296,16 +276,29 @@ class PianoKeyboardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double keyWidth = size.width / (highestNote - lowestNote + 1);
+    // First: Count how many WHITE keys total
+    int whiteKeyCount = 0;
+    for (int pitch = lowestNote; pitch <= highestNote; pitch++) {
+      final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
+      if (!isBlackKey) {
+        whiteKeyCount++;
+      }
+    }
 
-    // Draw white keys first
+    // Width for each white key (no gaps)
+    final double whiteKeyWidth = size.width / whiteKeyCount;
+
+    // Track which white key we're drawing
+    int whiteKeyIndex = 0;
+
+    // Draw white keys consecutively without gaps
     for (int pitch = lowestNote; pitch <= highestNote; pitch++) {
       final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
       if (!isBlackKey) {
         final Rect keyRect = Rect.fromLTWH(
-          (pitch - lowestNote) * keyWidth,
+          whiteKeyIndex * whiteKeyWidth,  // Consecutive positioning
           0,
-          keyWidth,
+          whiteKeyWidth,
           size.height,
         );
 
@@ -316,7 +309,6 @@ class PianoKeyboardPainter extends CustomPainter {
 
         canvas.drawRect(keyRect, paint);
 
-        // Draw key border
         canvas.drawRect(
           keyRect,
           Paint()
@@ -325,7 +317,6 @@ class PianoKeyboardPainter extends CustomPainter {
             ..strokeWidth = 1,
         );
 
-        // Draw C note labels
         if (pitch % 12 == 0) {
           TextPainter textPainter = TextPainter(
             text: TextSpan(
@@ -338,22 +329,37 @@ class PianoKeyboardPainter extends CustomPainter {
           textPainter.paint(
             canvas,
             Offset(
-              (pitch - lowestNote) * keyWidth + keyWidth / 2 - textPainter.width / 2,
+              whiteKeyIndex * whiteKeyWidth + whiteKeyWidth / 2 - textPainter.width / 2,
               size.height - textPainter.height - 2,
             ),
           );
         }
+
+        whiteKeyIndex++;  // Move to next white key position
       }
     }
 
-    // Draw black keys on top
+    // Second pass: Draw black keys positioned relative to white keys
     for (int pitch = lowestNote; pitch <= highestNote; pitch++) {
       final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
       if (isBlackKey) {
+        // Count how many white keys come before this black key
+        int whiteKeysBeforeBlackKey = 0;
+        for (int p = lowestNote; p < pitch; p++) {
+          final bool isPreviousBlackKey = [1, 3, 6, 8, 10].contains(p % 12);
+          if (!isPreviousBlackKey) {
+            whiteKeysBeforeBlackKey++;
+          }
+        }
+
+        // Position black key between this white key and the next
+        final double blackKeyX = (whiteKeysBeforeBlackKey - 0.5) * whiteKeyWidth + whiteKeyWidth * 0.3 - 2;
+        final double blackKeyWidth = whiteKeyWidth * 0.6;
+
         final Rect keyRect = Rect.fromLTWH(
-          (pitch - lowestNote) * keyWidth - keyWidth * 0.3,
+          blackKeyX,
           0,
-          keyWidth * 0.6,
+          blackKeyWidth,
           size.height * 0.6,
         );
 
@@ -373,7 +379,6 @@ class PianoKeyboardPainter extends CustomPainter {
   }
 }
 
-// Custom painter for piano roll notes
 class NotePainter extends CustomPainter {
   final List<Note> notes;
   final double currentTime;
@@ -391,34 +396,41 @@ class NotePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double keyWidth = size.width / (highestNote - lowestNote + 1);
-    final double viewportHeight = size.height - 60; // Exclude keyboard height
-    final double pixelsPerSecond = viewportHeight / 3.0; // 3 seconds visible
+    // Calculate white key layout (same as keyboard painter)
+    int whiteKeyCount = 0;
+    for (int pitch = lowestNote; pitch <= highestNote; pitch++) {
+      final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
+      if (!isBlackKey) {
+        whiteKeyCount++;
+      }
+    }
+    
+    final double whiteKeyWidth = size.width / whiteKeyCount;
+    final double viewportHeight = size.height - 60;
+    final double pixelsPerSecond = viewportHeight / 3.0;
 
-    // Draw only notes that are visible in the current time window
     for (final note in notes) {
-      // Skip notes that are not visible
       if (note.time + note.duration < currentTime - 1.0 || note.time > currentTime + 3.0) {
         continue;
       }
 
-      // Calculate note position
       final double timeDiff = note.time - currentTime;
-      final int noteIndex = note.pitch - lowestNote;
+      
+      // Calculate note position using new layout logic
+      final double noteX = _getNoteXPosition(note.pitch, whiteKeyWidth);
+      final double noteWidth = _getNoteWidth(note.pitch, whiteKeyWidth);
 
-      // Notes that haven't reached the bottom yet
       if (timeDiff > 0) {
         final double noteTop = viewportHeight - (viewportHeight * (timeDiff / 3.0));
         final double noteHeight = pixelsPerSecond * note.duration;
 
         final Rect noteRect = Rect.fromLTWH(
-          noteIndex * keyWidth,
+          noteX,
           noteTop - noteHeight,
-          keyWidth,
+          noteWidth,
           noteHeight,
         );
 
-        // Draw note
         final Paint paint = Paint()
           ..color = _getNoteColor(note.pitch).withOpacity(0.8)
           ..style = PaintingStyle.fill;
@@ -428,7 +440,6 @@ class NotePainter extends CustomPainter {
           paint,
         );
 
-        // Draw border
         canvas.drawRRect(
           RRect.fromRectAndRadius(noteRect, Radius.circular(3)),
           Paint()
@@ -437,19 +448,17 @@ class NotePainter extends CustomPainter {
             ..strokeWidth = 1,
         );
       }
-      // Notes that have already reached the bottom but are still playing
       else if (note.time <= currentTime && note.time + note.duration > currentTime) {
         final double remainingDuration = note.time + note.duration - currentTime;
         final double noteHeight = pixelsPerSecond * remainingDuration;
 
         final Rect noteRect = Rect.fromLTWH(
-          noteIndex * keyWidth,
+          noteX,
           viewportHeight - noteHeight,
-          keyWidth,
+          noteWidth,
           noteHeight,
         );
 
-        // Draw note
         final Paint paint = Paint()
           ..color = _getNoteColor(note.pitch).withOpacity(0.8)
           ..style = PaintingStyle.fill;
@@ -459,7 +468,6 @@ class NotePainter extends CustomPainter {
           paint,
         );
 
-        // Draw border
         canvas.drawRRect(
           RRect.fromRectAndRadius(noteRect, Radius.circular(3)),
           Paint()
@@ -471,8 +479,40 @@ class NotePainter extends CustomPainter {
     }
   }
 
+  // Calculate X position for a note (same logic as keyboard painter)
+  double _getNoteXPosition(int pitch, double whiteKeyWidth) {
+    final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
+    
+    if (!isBlackKey) {
+      // White key: count white keys before this one
+      int whiteKeyIndex = 0;
+      for (int p = lowestNote; p < pitch; p++) {
+        final bool isPreviousBlackKey = [1, 3, 6, 8, 10].contains(p % 12);
+        if (!isPreviousBlackKey) {
+          whiteKeyIndex++;
+        }
+      }
+      return whiteKeyIndex * whiteKeyWidth;
+    } else {
+      // Black key: position between white keys (same as keyboard painter)
+      int whiteKeysBeforeBlackKey = 0;
+      for (int p = lowestNote; p < pitch; p++) {
+        final bool isPreviousBlackKey = [1, 3, 6, 8, 10].contains(p % 12);
+        if (!isPreviousBlackKey) {
+          whiteKeysBeforeBlackKey++;
+        }
+      }
+      return (whiteKeysBeforeBlackKey - 0.5) * whiteKeyWidth + whiteKeyWidth * 0.3 - 2;
+    }
+  }
+
+  // Calculate width for a note
+  double _getNoteWidth(int pitch, double whiteKeyWidth) {
+    final bool isBlackKey = [1, 3, 6, 8, 10].contains(pitch % 12);
+    return isBlackKey ? whiteKeyWidth * 0.6 : whiteKeyWidth;
+  }
+
   Color _getNoteColor(int pitch) {
-    // Simple color scheme
     final List<Color> colors = [
       Colors.red,
       Colors.orange,

@@ -66,7 +66,6 @@ class _RegisterScreenState extends State<RegisterScreen>
         _errorMessage = '';
       });
 
-      // Verificăm dacă parolele coincid
       if (_passwordController.text != _confirmPasswordController.text) {
         setState(() {
           _errorMessage = 'The passwords are not the same!';
@@ -76,16 +75,13 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
 
       try {
-        // Înregistrăm utilizatorul
         final userCredential = await _authService.registerWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
 
-        // Actualizăm profilul cu numele utilizatorului
         await userCredential?.user?.updateDisplayName(_nameController.text.trim());
 
-        // Navigare către ecranul principal
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => HomeScreen()),
         );
@@ -144,7 +140,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                     ),
                     const SizedBox(height: 40),
 
-                    // Formular înregistrare
                     Form(
                       key: _formKey,
                       child: Column(
@@ -159,7 +154,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                           _buildConfirmPasswordField(),
                           const SizedBox(height: 24),
 
-                          // Mesaj de eroare
                           if (_errorMessage.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -179,7 +173,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                           if (_errorMessage.isNotEmpty)
                             const SizedBox(height: 16),
 
-                          // Buton înregistrare
                           _buildRegisterButton(),
                         ],
                       ),

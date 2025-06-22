@@ -46,21 +46,21 @@ class AuthService {
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
-        return 'Adresa de email nu este validă.';
+        return 'Invalid Email Address.';
       case 'user-disabled':
-        return 'Acest cont a fost dezactivat.';
+        return 'This account is deactivated.';
       case 'user-not-found':
-        return 'Nu există un cont cu acest email.';
+        return 'There doesn\'t exist an account with the given email.';
       case 'wrong-password':
-        return 'Parola este incorectă.';
+        return 'Incorrect password.';
       case 'email-already-in-use':
-        return 'Există deja un cont cu acest email.';
+        return 'The given email is already in use.';
       case 'operation-not-allowed':
-        return 'Această operațiune nu este permisă.';
+        return 'Operation Not Allowed.';
       case 'weak-password':
-        return 'Parola este prea slabă.';
+        return 'Weak Password.';
       default:
-        return 'A apărut o eroare: ${e.message}';
+        return 'Encountered Error: ${e.message}';
     }
   }
 }

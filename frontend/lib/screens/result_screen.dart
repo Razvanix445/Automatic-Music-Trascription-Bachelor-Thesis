@@ -1,14 +1,16 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_projects/services/platform_service.dart';
 import 'package:flutter_projects/widgets/sheet_music_viewer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/transcription_result.dart';
 import '../services/api_service.dart';
 import '../config/app_theme.dart';
-import '../widgets/piano_roll_visualization.dart'; // Use your existing piano roll
+import '../widgets/piano_roll_visualization.dart';
 import '../screens/midi_test_screen.dart';
-import '../widgets/midi_player_button.dart'; // Import our simple button widget
+import '../widgets/midi_player_button.dart';
 
 class ResultScreen extends StatefulWidget {
   final TranscriptionResult result;
@@ -25,13 +27,12 @@ class _ResultScreenState extends State<ResultScreen> {
   );
 
   bool _isDownloading = false;
-  File? _midiFile;
+  PlatformFile? _midiFile;
+  bool _showMidiSection = false;
+  Timer? _midiSectionTimer;
 
-  // Reference to the piano roll visualization
-  // Using a generic key instead of a specific state type
   final GlobalKey<State<PianoRollVisualization>> _pianoRollKey = GlobalKey();
 
-  // For time display in the button
   double _currentTime = 0.0;
   double _totalDuration = 0.0;
 
@@ -51,7 +52,6 @@ class _ResultScreenState extends State<ResultScreen> {
           _totalDuration = noteEndTime;
         }
       }
-      // Add a little padding to the end
       _totalDuration += 2.0;
     }
   }
@@ -74,10 +74,13 @@ class _ResultScreenState extends State<ResultScreen> {
       });
 
       if (file != null) {
-        // Print basic file info for debugging
         try {
-          final size = await file.length();
-          print("✅ MIDI file downloaded: ${file.path} (${size} bytes)");
+          final size = file.size;
+          if (file.isWebDownload) {
+            print("✅ MIDI file prepared for web download: $midiFilename (${size} bytes)");
+          } else {
+            print("✅ MIDI file downloaded: ${file.path} (${size} bytes)");
+          }
         } catch (e) {
           print("⚠️ Error getting file info: $e");
         }
@@ -95,37 +98,42 @@ class _ResultScreenState extends State<ResultScreen> {
     if (_midiFile == null) return;
 
     try {
-      await Share.shareXFiles(
-        [XFile(_midiFile!.path)],
-        text: 'My piano transcription MIDI file',
-      );
+      if (_midiFile!.isWebDownload) {
+        // On web, show message that file was downloaded to browser
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('MIDI file was downloaded to your browser\'s download folder'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // On mobile, share the actual file
+        await Share.shareXFiles(
+          [XFile(_midiFile!.path)],
+          text: 'My piano transcription MIDI file',
+        );
+      }
     } catch (e) {
       print('Error sharing MIDI file: $e');
     }
   }
 
-  // Called by the piano roll to update the time display
   void _updateCurrentTime(double time) {
     setState(() {
       _currentTime = time;
     });
   }
 
-  // Button callback handlers - access methods through the widget
   void _handlePlay() {
-    // Get the current widget from the key
     final pianoRollWidget = _pianoRollKey.currentWidget as PianoRollVisualization?;
     final pianoRollState = _pianoRollKey.currentState;
 
-    // Use a safer way to access the method
     if (pianoRollState != null) {
-      // Call a method that would be available on the public API
       (pianoRollState as dynamic).startPlayback();
     }
   }
 
   void _handlePause() {
-    // Cast to dynamic to access the method
     final pianoRollState = _pianoRollKey.currentState;
     if (pianoRollState != null) {
       (pianoRollState as dynamic).stopPlayback();
@@ -133,7 +141,6 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void _handleReset() {
-    // Cast to dynamic to access the method
     final pianoRollState = _pianoRollKey.currentState;
     if (pianoRollState != null) {
       (pianoRollState as dynamic).resetPlayback();
@@ -158,36 +165,11 @@ class _ResultScreenState extends State<ResultScreen> {
           elevation: 0,
           iconTheme: IconThemeData(color: AppTheme.textColor),
           actions: [
-            // if (widget.result.musescoreAvailable)
-            //   Padding(
-            //     padding: EdgeInsets.only(right: 8),
-            //     child: Chip(
-            //       label: Text(
-            //         'Sheet Music',
-            //         style: TextStyle(fontSize: 10, color: Colors.white),
-            //       ),
-            //       backgroundColor: Colors.green,
-            //       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            //     ),
-            //   ),
             if (_midiFile != null)
               IconButton(
                 icon: Icon(Icons.share, color: AppTheme.textColor),
                 onPressed: _shareMidiFile,
               ),
-            // if (_midiFile != null)
-            //   IconButton(
-            //     icon: Icon(Icons.music_note, color: AppTheme.textColor),
-            //     onPressed: () {
-            //       Navigator.push(
-            //         context,
-            //         MaterialPageRoute(
-            //           builder: (context) => MidiTestScreen(midiFilePath: _midiFile!.path),
-            //         ),
-            //       );
-            //     },
-            //     tooltip: 'Test MIDI Playback',
-            //   ),
           ],
           bottom: TabBar(
             tabs: [
@@ -213,10 +195,8 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           child: TabBarView(
             children: [
-              // Piano Roll Visualization Tab
               Column(
                 children: [
-                  // Add our simple MIDI player button if file is available
                   if (_midiFile != null)
                     MidiPlayerButton(
                       midiFilePath: _midiFile!.path,
@@ -227,7 +207,6 @@ class _ResultScreenState extends State<ResultScreen> {
                       totalDuration: _totalDuration,
                     ),
 
-                  // Use the existing PianoRollVisualization but with a key
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
@@ -240,22 +219,32 @@ class _ResultScreenState extends State<ResultScreen> {
                           key: _pianoRollKey,
                           notes: widget.result.notes,
                           duration: _totalDuration,
-                          midiFilePath: _midiFile?.path,
+                          midiFile: _midiFile,
                           onTimeUpdate: _updateCurrentTime,
                         ),
                       ),
                     ),
                   ),
-                  _buildMidiSection(),
+                  // _buildMidiSection(),
                 ],
               ),
 
-              // Sheet Music Viewer Tab
               SheetMusicViewer(
                 sheetMusic: widget.result.sheetMusic,
                 title: 'Piano Transcription',
                 apiService: _apiService,
               ),
+              if (_showMidiSection)
+                Positioned(
+                  bottom: 20,
+                  left: 16,
+                  right: 16,
+                  child: AnimatedOpacity(
+                    opacity: _showMidiSection ? 1.0 : 0.0,
+                    duration: Duration(milliseconds: 300),
+                    child: _buildMidiSection(),
+                  ),
+                ),
             ],
           ),
         ),
@@ -356,10 +345,12 @@ class _ResultScreenState extends State<ResultScreen> {
                 ),
                 Text(
                   _isDownloading
-                      ? 'Downloading...'
-                      : _midiFile != null
-                      ? 'Downloaded: ${_midiFile!.path}'
-                      : 'Could not load',
+                    ? 'Downloading...'
+                    : _midiFile != null
+                    ? (_midiFile!.isWebDownload 
+                        ? 'Ready for browser download' 
+                        : 'Downloaded: ${_midiFile!.path}')
+                    : 'Could not load',
                   style: TextStyle(color: AppTheme.textColor.withOpacity(0.7)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

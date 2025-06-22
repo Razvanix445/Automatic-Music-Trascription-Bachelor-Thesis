@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF5E8B7E);  // Verde-turcoaz cald
-  static const Color accentColor = Color(0xFFF9A826);   // Portocaliu cald
-  static const Color backgroundColor = Color(0xFFF9F7F3); // Alb crem
-  static const Color textColor = Color(0xFF2D4059);     // Albastru închis
-  static const Color errorColor = Color(0xFFE76F51);    // Coral pentru erori
+  static const Color primaryColor = Color(0xFF5E8B7E);
+  static const Color accentColor = Color(0xFFF9A826);
+  static const Color backgroundColor = Color(0xFFF9F7F3);
+  static const Color textColor = Color(0xFF2D4059);
+  static const Color errorColor = Color(0xFFE76F51);
 
   static const String fontFamily = 'Nunito';
 

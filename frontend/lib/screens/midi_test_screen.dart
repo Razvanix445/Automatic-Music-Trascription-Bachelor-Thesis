@@ -4,7 +4,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:audioplayers/audioplayers.dart' as audio_players;
 import 'dart:math' as math;
 
-// Add this screen to test different MIDI playback methods
 class MidiTestScreen extends StatefulWidget {
   final String midiFilePath;
 
@@ -15,7 +14,6 @@ class MidiTestScreen extends StatefulWidget {
 }
 
 class _MidiTestScreenState extends State<MidiTestScreen> {
-  // Try different audio players
   final AudioPlayer _justAudioPlayer = AudioPlayer();
   final audio_players.AudioPlayer _audioPlayersLib = audio_players.AudioPlayer();
 
@@ -43,7 +41,6 @@ class _MidiTestScreenState extends State<MidiTestScreen> {
               "Last modified: ${lastModified}";
         });
 
-        // Attempt to load with JustAudio
         try {
           await _justAudioPlayer.setFilePath(widget.midiFilePath);
           await _justAudioPlayer.load();
@@ -56,7 +53,6 @@ class _MidiTestScreenState extends State<MidiTestScreen> {
           });
         }
 
-        // Attempt to load with AudioPlayers
         try {
           await _audioPlayersLib.setSource(audio_players.DeviceFileSource(widget.midiFilePath));
           setState(() {
@@ -103,7 +99,6 @@ class _MidiTestScreenState extends State<MidiTestScreen> {
           _status = "JustAudio: Attempted to play";
         });
 
-        // Check state after a delay
         Future.delayed(Duration(seconds: 1), () {
           setState(() {
             _status = "JustAudio state: ${_justAudioPlayer.playing ? 'PLAYING' : 'NOT PLAYING'}, "
@@ -144,7 +139,6 @@ class _MidiTestScreenState extends State<MidiTestScreen> {
 
   Future<void> _loadFileAsData() async {
     try {
-      // Read the first 50 bytes to check file signature
       final file = File(widget.midiFilePath);
       final bytes = await file.openRead(0, 50).toList();
       final flatBytes = bytes.expand((e) => e).toList();
@@ -158,7 +152,6 @@ class _MidiTestScreenState extends State<MidiTestScreen> {
         _status = "File header (first 50 bytes):\n$hexString";
       });
 
-      // Check for MIDI file signature (MThd)
       bool isMidiSignature = false;
       if (flatBytes.length >= 4) {
         final signature = String.fromCharCodes(flatBytes.sublist(0, 4));

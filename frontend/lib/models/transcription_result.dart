@@ -88,7 +88,6 @@ class TranscriptionResult {
   });
 
   factory TranscriptionResult.fromJson(Map<String, dynamic> json) {
-    // Handle notes array
     List<Note> notesList = [];
     if (json['notes'] != null && json['notes'] is List) {
       notesList = (json['notes'] as List)
@@ -96,7 +95,6 @@ class TranscriptionResult {
           .toList();
     }
 
-    // Handle sheet music (can be null)
     SheetMusic? sheetMusicObj;
     if (json['sheet_music'] != null && json['sheet_music'] is Map<String, dynamic>) {
       sheetMusicObj = SheetMusic.fromJson(json['sheet_music']);
@@ -123,7 +121,6 @@ class TranscriptionResult {
     };
   }
 
-  // Helper methods
   bool get hasNotes => notes.isNotEmpty;
   bool get hasSheetMusic => sheetMusic != null;
   bool get hasMidiFile => midiFileUrl.isNotEmpty;

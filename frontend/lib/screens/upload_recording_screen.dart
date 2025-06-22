@@ -18,16 +18,14 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  // Different file types the user can upload
-  File? _audioFile;           // Required - the actual recording
-  File? _imageFile;           // Optional - recording cover image
-  File? _pdfFile;             // Optional - sheet music PDF
-  File? _midiFile;            // Optional - MIDI transcription
+  File? _audioFile;
+  File? _imageFile;
+  File? _pdfFile;
+  File? _midiFile;
 
   bool _isLoading = false;
   double _uploadProgress = 0.0;
 
-  // For displaying selected file names
   String _audioFileName = '';
   String _imageFileName = '';
   String _pdfFileName = '';
@@ -40,7 +38,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     super.dispose();
   }
 
-  // Pick the main audio recording file (required)
   Future<void> _pickAudioFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -53,7 +50,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
           _audioFile = File(result.files.first.path!);
           _audioFileName = path.basename(_audioFile!.path);
 
-          // Auto-suggest title from filename if title is empty
           if (_titleController.text.isEmpty) {
             final nameWithoutExtension = path.basenameWithoutExtension(_audioFileName);
             _titleController.text = nameWithoutExtension;
@@ -65,7 +61,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     }
   }
 
-  // Pick optional image file for the recording
   Future<void> _pickImageFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -84,7 +79,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     }
   }
 
-  // Pick optional PDF sheet music file
   Future<void> _pickPdfFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -104,7 +98,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     }
   }
 
-  // Pick optional MIDI file
   Future<void> _pickMidiFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -124,7 +117,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     }
   }
 
-  // Upload all selected files
   Future<void> _uploadRecording() async {
     if (_formKey.currentState!.validate() && _audioFile != null) {
       setState(() {
@@ -133,17 +125,14 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
       });
 
       try {
-        // Create a map of all selected files
         Map<String, File> files = {
-          'audio': _audioFile!,  // Audio is required
+          'audio': _audioFile!,
         };
 
-        // Add optional files if selected
         if (_imageFile != null) files['image'] = _imageFile!;
         if (_pdfFile != null) files['pdf'] = _pdfFile!;
         if (_midiFile != null) files['midi'] = _midiFile!;
 
-        // Upload using the enhanced AWS service
         final result = await _awsService.uploadRecordingWithFiles(
           files: files,
           title: _titleController.text.trim(),
@@ -211,7 +200,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Main audio file section (required)
                 _buildFileSection(
                   title: 'Audio Recording *',
                   subtitle: 'Select the main audio file',
@@ -224,12 +212,10 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
                 
                 SizedBox(height: 16),
                 
-                // Recording details
                 _buildDetailsSection(),
                 
                 SizedBox(height: 24),
                 
-                // Optional files section
                 Text(
                   'Optional Files',
                   style: TextStyle(
@@ -248,7 +234,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
                 ),
                 SizedBox(height: 16),
                 
-                // Image file section
                 _buildFileSection(
                   title: 'Cover Image',
                   subtitle: 'Add a visual representation',
@@ -261,7 +246,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
                 
                 SizedBox(height: 12),
                 
-                // PDF sheet music section
                 _buildFileSection(
                   title: 'Sheet Music (PDF)',
                   subtitle: 'Upload the musical notation',
@@ -274,7 +258,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
                 
                 SizedBox(height: 12),
                 
-                // MIDI file section
                 _buildFileSection(
                   title: 'MIDI File',
                   subtitle: 'Digital representation of the music',
@@ -287,10 +270,8 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
                 
                 SizedBox(height: 32),
 
-                // Upload progress
                 if (_isLoading) _buildProgressSection(),
 
-                // Upload button
                 ElevatedButton.icon(
                   onPressed: _isLoading || _audioFile == null
                       ? null
@@ -338,7 +319,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
           ),
           SizedBox(height: 16),
           
-          // Title field
           TextFormField(
             controller: _titleController,
             decoration: InputDecoration(
@@ -359,7 +339,6 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
           
           SizedBox(height: 16),
           
-          // Description field
           TextFormField(
             controller: _descriptionController,
             maxLines: 3,
@@ -482,262 +461,3 @@ class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
     );
   }
 }
-
-// class UploadRecordingScreen extends StatefulWidget {
-//   @override
-//   _UploadRecordingScreenState createState() => _UploadRecordingScreenState();
-// }
-
-// class _UploadRecordingScreenState extends State<UploadRecordingScreen> {
-//   final AwsService _awsService = AwsService();
-//   final RecordingService _recordingService = RecordingService();
-//   final _formKey = GlobalKey<FormState>();
-//   final _titleController = TextEditingController();
-
-//   File? _selectedFile;
-//   bool _isLoading = false; // ADĂUGAT
-//   double _uploadProgress = 0.0;
-//   String _selectedFileName = '';
-
-//   @override
-//   void dispose() {
-//     _titleController.dispose();
-//     super.dispose();
-//   }
-
-//   Future<void> _pickAudioFile() async {
-//     try {
-//       FilePickerResult? result = await FilePicker.platform.pickFiles(
-//         type: FileType.audio,
-//         allowMultiple: false,
-//       );
-
-//       if (result != null && result.files.isNotEmpty) {
-//         setState(() {
-//           _selectedFile = File(result.files.first.path!);
-//           _selectedFileName = path.basename(_selectedFile!.path);
-
-//           // Sugerează un titlu bazat pe numele fișierului
-//           final nameWithoutExtension = path.basenameWithoutExtension(_selectedFileName);
-//           _titleController.text = nameWithoutExtension;
-//         });
-//       }
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: Text('Error selecting the file: $e'),
-//           backgroundColor: AppTheme.errorColor,
-//         ),
-//       );
-//     }
-//   }
-
-//   Future<void> _uploadRecording() async {
-//     if (_formKey.currentState!.validate() && _selectedFile != null) {
-//       setState(() {
-//         _isLoading = true;
-//         _uploadProgress = 0.0;
-//       });
-
-//       try {
-//         // Folosește serviciul pentru a încărca direct la AWS prin backend
-//         final result = await _awsService.uploadRecording(
-//           _selectedFile!,
-//           _titleController.text.trim(),
-//         );
-
-//         setState(() {
-//           _isLoading = false;
-//         });
-
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text('Recording loaded successfully!'),
-//             backgroundColor: Colors.green,
-//           ),
-//         );
-
-//         Navigator.of(context).pop();
-//       } catch (e) {
-//         setState(() {
-//           _isLoading = false;
-//         });
-
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text('Error loading the recording: $e'),
-//             backgroundColor: AppTheme.errorColor,
-//           ),
-//         );
-//       }
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(
-//           'Add recording',
-//           style: TextStyle(color: AppTheme.textColor),
-//         ),
-//         backgroundColor: Colors.transparent,
-//         elevation: 0,
-//         iconTheme: IconThemeData(color: AppTheme.textColor),
-//       ),
-//       body: Container(
-//         decoration: BoxDecoration(
-//           gradient: LinearGradient(
-//             begin: Alignment.topCenter,
-//             end: Alignment.bottomCenter,
-//             colors: [
-//               AppTheme.backgroundColor,
-//               Color(0xFFE8F4F2),
-//             ],
-//           ),
-//         ),
-//         child: Padding(
-//           padding: const EdgeInsets.all(24.0),
-//           child: Form(
-//             key: _formKey,
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.stretch,
-//               children: [
-//                 // Secțiune pentru selectarea fișierului
-//                 _buildFileSelectionSection(),
-//                 SizedBox(height: 24),
-
-//                 // Titlu înregistrare
-//                 TextFormField(
-//                   controller: _titleController,
-//                   decoration: InputDecoration(
-//                     labelText: 'Recording title',
-//                     hintText: 'Ex: Clair de Lune',
-//                     prefixIcon: Icon(
-//                       Icons.music_note,
-//                       color: AppTheme.primaryColor,
-//                     ),
-//                   ),
-//                   validator: (value) {
-//                     if (value == null || value.trim().isEmpty) {
-//                       return 'Please enter a title';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 SizedBox(height: 32),
-
-//                 // Progres upload
-//                 if (_isLoading)
-//                   Column(
-//                     children: [
-//                       LinearProgressIndicator(
-//                         value: _uploadProgress,
-//                         backgroundColor: Colors.grey[300],
-//                         valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-//                       ),
-//                       SizedBox(height: 8),
-//                       Text(
-//                         'Adding... ${(_uploadProgress * 100).toStringAsFixed(0)}%',
-//                         textAlign: TextAlign.center,
-//                         style: TextStyle(
-//                           color: AppTheme.primaryColor,
-//                         ),
-//                       ),
-//                       SizedBox(height: 16),
-//                     ],
-//                   ),
-
-//                 // Buton upload
-//                 ElevatedButton.icon(
-//                   onPressed: _isLoading || _selectedFile == null
-//                       ? null
-//                       : _uploadRecording,
-//                   icon: Icon(Icons.cloud_upload),
-//                   label: Text('Add recording'),
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: AppTheme.accentColor,
-//                     disabledBackgroundColor: AppTheme.accentColor.withOpacity(0.5),
-//                     padding: EdgeInsets.symmetric(vertical: 16),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildFileSelectionSection() {
-//     return Container(
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(16),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 10,
-//             spreadRadius: 1,
-//           ),
-//         ],
-//       ),
-//       padding: EdgeInsets.all(20),
-//       child: Column(
-//         children: [
-//           Icon(
-//             _selectedFile != null ? Icons.audiotrack : Icons.upload_file,
-//             size: 64,
-//             color: _selectedFile != null
-//                 ? AppTheme.accentColor
-//                 : AppTheme.primaryColor.withOpacity(0.5),
-//           ),
-//           SizedBox(height: 16),
-//           Text(
-//             _selectedFile != null
-//                 ? 'Selected file:'
-//                 : 'Select an audio recording',
-//             style: TextStyle(
-//               fontSize: 16,
-//               fontWeight: FontWeight.bold,
-//               color: AppTheme.textColor,
-//             ),
-//           ),
-//           SizedBox(height: 8),
-//           if (_selectedFile != null)
-//             Text(
-//               _selectedFileName,
-//               style: TextStyle(
-//                 color: AppTheme.textColor.withOpacity(0.7),
-//               ),
-//               textAlign: TextAlign.center,
-//             ),
-//           SizedBox(height: 16),
-//           OutlinedButton.icon(
-//             onPressed: _isLoading ? null : _pickAudioFile,
-//             icon: Icon(
-//               _selectedFile != null ? Icons.change_circle : Icons.add,
-//               color: AppTheme.primaryColor,
-//             ),
-//             label: Text(
-//               _selectedFile != null ? 'Change file' : 'Choose file',
-//               style: TextStyle(
-//                 color: AppTheme.primaryColor,
-//               ),
-//             ),
-//             style: OutlinedButton.styleFrom(
-//               side: BorderSide(color: AppTheme.primaryColor),
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(30),
-//               ),
-//               padding: EdgeInsets.symmetric(
-//                 horizontal: 24,
-//                 vertical: 12,
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
